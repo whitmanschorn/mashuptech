@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>mashuptech</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #2a2b2e;
+    --panel: #343538;
+    --panel-raised: #3d3e42;
+    --line: #48494e;
+    --ink: #ecebe6;
+    --ink-soft: #b4b3ad;
+    --ink-faint: #7d7c77;
+    --acapella: #e79ac2;
+    --drums: #f2b45b;
+    --instrumental: #83b9db;
+    --ok: #9fd27a;
+    --bad: #ec7360;
+    --warn: #f2b45b;
+    --radius: 6px;
+    --font: "Instrument Sans", "Helvetica Neue", Arial, system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { height: 100%; }
+  body {
+    margin: 0; min-height: 100%;
+    background: var(--bg); color: var(--ink);
+    font: 15px/1.45 var(--font);
+    font-variant-numeric: tabular-nums;
+    padding: 0 20px env(safe-area-inset-bottom, 0px);
+  }
+  a { color: inherit; }
+  button {
+    font: inherit; color: var(--ink); background: var(--panel-raised);
+    border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 5px 11px; cursor: pointer;
+  }
+  button:hover { background: #46474c; }
+  button:focus-visible, a:focus-visible { outline: 2px solid var(--instrumental); outline-offset: 2px; }
+  button.quiet { background: transparent; border-color: transparent; color: var(--ink-soft); }
+  button.quiet:hover { color: var(--ink); background: var(--panel-raised); }
+
+  /* ---------- header ---------- */
+  header {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 28px;
+    padding: 22px 0 18px; border-bottom: 1px solid var(--line);
+  }
+  .wordmark { font-weight: 600; font-size: 17px; letter-spacing: -0.01em; }
+  .wordmark span { color: var(--ink-faint); font-weight: 400; margin-left: 8px; font-size: 13px; }
+  .status { display: flex; align-items: center; gap: 10px; font-size: 16px; flex: 1 1 320px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ink-faint); flex: none; }
+  .dot.working { background: var(--drums); box-shadow: 0 0 0 0 rgba(242,180,91,.6); animation: pulse 1.8s ease-out infinite; }
+  .dot.idle { background: var(--ok); }
+  .dot.error, .dot.offline { background: var(--bad); }
+  .dot.loading { background: var(--instrumental); }
+  @keyframes pulse { to { box-shadow: 0 0 0 9px rgba(242,180,91,0); } }
+  @media (prefers-reduced-motion: reduce) { .dot.working { animation: none; } }
+  .env { color: var(--ink-soft); font-size: 13px; display: flex; gap: 14px; flex-wrap: wrap; }
+  .env b { color: var(--ink); font-weight: 500; }
+
+  /* ---------- layout ---------- */
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; padding: 24px 0 40px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  h2 { font-size: 13px; font-weight: 500; color: var(--ink-soft); margin: 26px 0 10px; display: flex; align-items: baseline; gap: 10px; }
+  h2:first-child { margin-top: 0; }
+  h2 .count { color: var(--ink-faint); font-weight: 400; }
+  h2 .spacer { flex: 1; }
+
+  /* ---------- song rows ---------- */
+  .row {
+    background: var(--panel); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 8px;
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; align-items: center;
+  }
+  .row .name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .sub { color: var(--ink-soft); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .meta { color: var(--ink-soft); font-size: 13px; text-align: right; white-space: nowrap; }
+  .row .actions { display: flex; gap: 6px; justify-content: flex-end; }
+  .row.queued { background: transparent; border: 1px dashed var(--line); color: var(--ink-soft); }
+  .row.queued .name { font-weight: 400; }
+  .row.failed { border-left: 3px solid var(--bad); }
+  .row.failed .err { color: #f3a394; font-size: 13px; grid-column: 1 / -1; word-break: break-word; }
+  .chips { display: inline-flex; gap: 6px; margin-left: 8px; vertical-align: middle; }
+  .chip { font-size: 12px; padding: 1px 7px; border-radius: 10px; background: var(--panel-raised); color: var(--ink); }
+  .chip.key { background: #4a3f52; }
+  .chip.bpm { background: #3f4a52; }
+
+  /* ---------- the current job: stem lanes ---------- */
+  .now {
+    background: var(--panel); border-radius: var(--radius); padding: 16px 16px 14px;
+    border: 1px solid var(--line);
+  }
+  .now .title { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; flex-wrap: wrap; }
+  .now .title .name { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+  .now .title .pct { font-size: 20px; color: var(--ink-soft); }
+  .now .file { color: var(--ink-faint); font-size: 13px; margin-top: 2px; }
+  .lanes { display: grid; grid-template-columns: 96px 1fr; gap: 7px 12px; margin: 18px 0 14px; align-items: center; }
+  .lanes label { font-size: 13px; color: var(--ink-soft); text-align: right; }
+  .lane { height: 22px; background: #26272a; border-radius: 3px; position: relative; overflow: hidden; }
+  .lane::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 calc(12.5% - 1px), #30313470 calc(12.5% - 1px) 12.5%); }
+  .lane i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 3px; transition: width .4s ease; }
+  .lane.acapella i { background: var(--acapella); }
+  .lane.drums i { background: var(--drums); }
+  .lane.instrumental i { background: var(--instrumental); }
+  .lane i::after { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 2px; background: rgba(255,255,255,.75); }
+  .lane.done i::after { display: none; }
+  @media (prefers-reduced-motion: reduce) { .lane i { transition: none; } }
+  .stages { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 13px; color: var(--ink-faint); }
+  .stage { padding: 3px 9px; border-radius: 10px; border: 1px solid var(--line); }
+  .stage.done { color: var(--ink-soft); border-color: transparent; background: var(--panel-raised); }
+  .stage.active { color: var(--ink); border-color: var(--drums); }
+  .stages .time { margin-left: auto; color: var(--ink-soft); }
+
+  .empty {
+    border: 1px dashed var(--line); border-radius: var(--radius); padding: 28px 20px; color: var(--ink-soft);
+    display: flex; flex-direction: column; gap: 12px; align-items: flex-start;
+  }
+  .empty p { margin: 0; max-width: 46ch; }
+  .empty code { background: var(--panel-raised); padding: 1px 6px; border-radius: 4px; color: var(--ink); font-size: 13px; }
+
+  /* ---------- log ---------- */
+  aside { min-width: 0; }
+  .log {
+    background: #232427; border-radius: var(--radius); padding: 10px 12px; height: min(70vh, 640px);
+    overflow-y: auto; font-size: 12.5px; line-height: 1.5; color: var(--ink-soft);
+  }
+  .log div { display: grid; grid-template-columns: 44px 1fr; gap: 10px; padding: 1px 0; }
+  .log time { color: var(--ink-faint); }
+  .log .warn { color: var(--warn); }
+  .log .error { color: var(--bad); }
+  .banner {
+    display: none; background: #4a2f2a; color: #f6c6bd; border-radius: var(--radius); padding: 10px 14px; margin-top: 18px;
+  }
+  .banner.show { display: block; }
+  @media (max-width: 900px) { .log { height: 260px; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="wordmark">mashuptech<span id="version"></span></div>
+  <div class="status"><span class="dot" id="dot"></span><span id="status-text">Connecting…</span></div>
+  <div class="env" id="env"></div>
+</header>
+<div class="banner" id="banner">Lost connection to the pipeline. Is <code>scripts/run.sh</code> still running? This page will reconnect by itself.</div>
+
+<main>
+  <section>
+    <h2>Now</h2>
+    <div id="now"></div>
+
+    <h2>Up next <span class="count" id="queued-count"></span></h2>
+    <div id="queued"></div>
+
+    <h2>Done <span class="count" id="done-count"></span><span class="spacer"></span>
+      <button class="quiet" id="open-outbox" title="Open the outbox folder">Open outbox</button>
+      <button class="quiet" id="dismiss-all" title="Clear finished and failed songs from this list">Clear list</button>
+    </h2>
+    <div id="done"></div>
+
+    <h2 id="failed-heading" hidden>Needs attention <span class="count" id="failed-count"></span></h2>
+    <div id="failed"></div>
+  </section>
+
+  <aside>
+    <h2>Log</h2>
+    <div class="log" id="log"></div>
+  </aside>
+</main>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const STAGES = ["decode", "separate", "analyze", "encode", "finalize"];
+  const STAGE_LABEL = { decode: "decode", separate: "separate", analyze: "bpm & key", encode: "encode", finalize: "finish" };
+  const STEMS = ["acapella", "drums", "instrumental"];
+  let state = null, tickTimer = null;
+
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const mmss = s => { if (s == null) return ""; s = Math.max(0, Math.round(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+  const human = s => {
+    if (s == null) return "";
+    if (s < 60) return "under a minute";
+    const m = Math.round(s / 60);
+    if (m < 60) return `about ${m} min`;
+    const h = Math.floor(m / 60), r = m % 60;
+    return r ? `about ${h} h ${r} min` : `about ${h} h`;
+  };
+  const clock = t => new Date(t * 1000).toTimeString().slice(0, 5);
+  const songName = j => j.artist && j.title ? `${j.artist} – ${j.title}` : j.filename.replace(/\.[^.]+$/, "");
+  const post = (url) => fetch(url, { method: "POST" }).then(r => r.ok).catch(() => false);
+
+  // Overall progress of the current job, weighting stages by typical cost.
+  const WEIGHTS = { decode: 0.03, separate: 0.80, analyze: 0.07, encode: 0.09, finalize: 0.01 };
+  function overall(job) {
+    if (!job.stage) return 0;
+    let acc = 0;
+    for (const s of STAGES) {
+      if (s === job.stage) { acc += WEIGHTS[s] * (job.progress || 0); break; }
+      acc += WEIGHTS[s];
+    }
+    return Math.min(acc, 1);
+  }
+
+  function render() {
+    if (!state) return;
+    const { info, stats, jobs, log } = state;
+    const current = jobs.find(j => j.status === "processing");
+    const queued = jobs.filter(j => j.status === "queued");
+    const done = jobs.filter(j => j.status === "done").slice().reverse();
+    const failed = jobs.filter(j => j.status === "failed").slice().reverse();
+
+    // header
+    $("version").textContent = info.version ? `v${info.version}` : "";
+    const dot = $("dot");
+    dot.className = "dot " + (info.status === "working" ? "working" : info.status === "idle" ? "idle" : info.status === "error" ? "error" : "loading");
+    let text;
+    if (info.status === "working" && current) {
+      const left = queued.length;
+      text = `Working on ${songName(current)}` + (left ? `, ${left} more waiting` : "") + (stats.eta_seconds ? ` · ${human(stats.eta_seconds)} left` : "");
+    } else if (info.status === "idle") {
+      text = queued.length ? `Starting next song…` : (stats.done ? `Idle. ${stats.done} song${stats.done === 1 ? "" : "s"} finished this run.` : "Idle. Drop songs into the inbox to begin.");
+    } else if (info.status === "loading model") {
+      text = "Loading the separation model…";
+    } else if (info.status === "error") {
+      text = "The model failed to load. See the log.";
+    } else {
+      text = "Starting…";
+    }
+    $("status-text").textContent = text;
+    const dev = info.device === "mps" ? "Metal GPU" : info.device === "cuda" ? "CUDA GPU" : info.device === "cpu" ? "CPU" : "";
+    $("env").innerHTML = [
+      info.model ? `model <b>${esc(info.model)}</b>` : "",
+      dev ? `running on <b>${dev}</b>` : "",
+      stats.avg_seconds ? `<b>${mmss(stats.avg_seconds)}</b> per song` : "",
+    ].filter(Boolean).join("");
+
+    // now
+    if (current) {
+      const pct = overall(current);
+      const sepStart = WEIGHTS.decode, sepEnd = WEIGHTS.decode + WEIGHTS.separate;
+      const laneFill = Math.max(0, Math.min(1, (pct - sepStart) / (sepEnd - sepStart)));
+      const stageIdx = STAGES.indexOf(current.stage);
+      $("now").innerHTML = `
+        <div class="now">
+          <div class="title">
+            <div class="name">${esc(songName(current))}</div>
+            <div class="pct">${Math.round(pct * 100)}%</div>
+          </div>
+          <div class="file">${esc(current.filename)}${current.duration ? ` · ${mmss(current.duration)} long` : ""}</div>
+          <div class="lanes">
+            ${STEMS.map(s => `<label>${s}</label><div class="lane ${s} ${laneFill >= 1 ? "done" : ""}"><i style="width:${(laneFill * 100).toFixed(1)}%"></i></div>`).join("")}
+          </div>
+          <div class="stages">
+            ${STAGES.map((s, i) => `<span class="stage ${i < stageIdx ? "done" : i === stageIdx ? "active" : ""}">${STAGE_LABEL[s]}</span>`).join("")}
+            <span class="time" id="elapsed">${mmss(current.elapsed)} elapsed</span>
+          </div>
+        </div>`;
+    } else if (!jobs.length) {
+      $("now").innerHTML = `
+        <div class="empty">
+          <p>Nothing is queued. Drop MP3s (or WAV, FLAC, M4A) into <code>inbox/</code> and they'll start here within a few seconds. Leave this running overnight; each song moves to <code>outbox/</code> when its three stems are ready.</p>
+          <button id="open-inbox">Open inbox</button>
+        </div>`;
+      $("open-inbox").onclick = () => post("/api/open/inbox");
+    } else {
+      $("now").innerHTML = `<div class="empty"><p>${queued.length ? "Starting the next song…" : "All caught up. Drop more songs into the inbox whenever you like."}</p>${queued.length ? "" : '<button id="open-inbox">Open inbox</button>'}</div>`;
+      const b = $("open-inbox"); if (b) b.onclick = () => post("/api/open/inbox");
+    }
+
+    // queued
+    $("queued-count").textContent = queued.length || "";
+    $("queued").innerHTML = queued.length ? queued.map((j, i) => `
+      <div class="row queued"><div class="name">${esc(j.filename)}</div><div class="meta">${i === 0 ? "next" : `#${i + 1}`}</div></div>`).join("")
+      : `<div class="row queued"><div class="sub">Queue is empty</div></div>`;
+
+    // done
+    $("done-count").textContent = done.length || "";
+    $("done").innerHTML = done.length ? done.map(j => `
+      <div class="row done" data-id="${j.id}">
+        <div>
+          <div class="name">${esc(songName(j))}<span class="chips">${j.bpm ? `<span class="chip bpm">${Math.round(j.bpm)} bpm</span>` : ""}${j.key ? `<span class="chip key">${esc(j.key)}</span>` : ""}</span></div>
+          <div class="sub">${esc((j.output_dir || "").split("/").pop())}</div>
+        </div>
+        <div class="actions"><span class="meta">${j.finished_at ? clock(j.finished_at) : ""} · took ${mmss(j.elapsed)}</span><button data-act="reveal">Show in Finder</button></div>
+      </div>`).join("") : `<div class="row queued"><div class="sub">Finished songs will appear here with their BPM and key.</div></div>`;
+
+    // failed
+    $("failed-heading").hidden = !failed.length;
+    $("failed-count").textContent = failed.length || "";
+    $("failed").innerHTML = failed.map(j => `
+      <div class="row failed" data-id="${j.id}">
+        <div class="name">${esc(j.filename)}</div>
+        <div class="actions"><button data-act="retry">Retry</button><button class="quiet" data-act="dismiss">Dismiss</button></div>
+        <div class="err">${esc(j.error)}</div>
+      </div>`).join("");
+
+    // log
+    const logEl = $("log");
+    const atBottom = logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 30;
+    logEl.innerHTML = log.map(l => `<div class="${l.level}"><time>${clock(l.t)}</time><span>${esc(l.msg)}</span></div>`).join("");
+    if (atBottom) logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  document.addEventListener("click", async e => {
+    const btn = e.target.closest("button[data-act]");
+    if (!btn) return;
+    const id = btn.closest("[data-id]").dataset.id;
+    btn.disabled = true;
+    await post(`/api/${btn.dataset.act}/${id}`);
+    btn.disabled = false;
+  });
+  $("open-outbox").onclick = () => post("/api/open/outbox");
+  $("dismiss-all").onclick = () => post("/api/dismiss");
+
+  // Live elapsed counter between server pushes.
+  function tick() {
+    if (!state) return;
+    const cur = state.jobs.find(j => j.status === "processing");
+    const el = $("elapsed");
+    if (cur && el && cur.started_at) el.textContent = `${mmss(Date.now() / 1000 - cur.started_at)} elapsed`;
+  }
+  tickTimer = setInterval(tick, 1000);
+
+  // SSE with polling fallback.
+  let es = null, pollTimer = null, offlineTimer = null;
+  function setOnline(on) {
+    $("banner").classList.toggle("show", !on);
+    if (!on) { $("dot").className = "dot offline"; $("status-text").textContent = "Disconnected"; }
+  }
+  function connect() {
+    try {
+      es = new EventSource("/api/events");
+      es.onmessage = ev => { state = JSON.parse(ev.data); setOnline(true); clearTimeout(offlineTimer); render(); };
+      es.onerror = () => { es.close(); offlineTimer = setTimeout(() => setOnline(false), 3000); setTimeout(connect, 3000); };
+    } catch { poll(); }
+  }
+  async function poll() {
+    try { state = await (await fetch("/api/state")).json(); setOnline(true); render(); }
+    catch { setOnline(false); }
+    pollTimer = setTimeout(poll, 2000);
+  }
+  if ("EventSource" in window) connect(); else poll();
+})();
+</script>
+</body>
+</html>
